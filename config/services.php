@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    'elastic' => [
+        'cities_endpoint' => env('ANALYTIC_CITIES_ENDPOINT'),
+        'countries_endpoint' => env('ANALYTIC_COUNTRIES_ENDPOINT'),
+        'destination_autonomous_bytes_endpoint' => env('ANALYTIC_DESTINATION_AUTONOMOUS_BYTES_ENDPOINT'),
+        'source_autonomous_bytes_endpoint' => env('ANALYTIC_SOURCE_AUTONOMOUS_BYTES_ENDPOINT'),
+        'destination_autonomous_packets_endpoint' => env('ANALYTIC_DESTINATION_AUTONOMOUS_PACKETS_ENDPOINT'),
+        'source_autonomous_packets_endpoint' => env('ANALYTIC_SOURCE_AUTONOMOUS_PACKETS_ENDPOINT'),
+        'destination_ip_endpoint' => env('ANALYTIC_DESTINATION_IP_ENDPOINT'),
+        'source_ip_endpoint' => env('ANALYTIC_SOURCE_IP_ENDPOINT'),
+        'destination_ports_endpoint' => env('ANALYTIC_DESTINATION_PORT_ENDPOINT'),
+        'source_ports_endpoint' => env('ANALYTIC_SOURCE_PORT_ENDPOINT'),
+    ],
+
 ];
