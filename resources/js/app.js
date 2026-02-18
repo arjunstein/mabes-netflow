@@ -8,6 +8,10 @@ window.ApexCharts = ApexCharts
 window.chartComponent = function (type, labels, series) {
     return {
         chart: null,
+        type: type,
+        labels: labels,
+        series: series,
+        title: null,
 
         init () {
             if (this.chart) {
@@ -46,6 +50,47 @@ window.chartComponent = function (type, labels, series) {
                 options.xaxis = {
                     categories: labels
                 }
+
+                options.yaxis = {
+                    labels: {
+                        formatter: function (value) {
+                            if (value >= 1000000000) {
+                                return (
+                                    (value / 1000000000)
+                                        .toFixed(1)
+                                        .replace(/\.0$/, '') + 'B'
+                                )
+                            }
+                            if (value >= 1000000) {
+                                return (
+                                    (value / 1000000)
+                                        .toFixed(1)
+                                        .replace(/\.0$/, '') + 'M'
+                                )
+                            }
+                            if (value >= 1000) {
+                                return (
+                                    (value / 1000)
+                                        .toFixed(1)
+                                        .replace(/\.0$/, '') + 'K'
+                                )
+                            }
+                            return value
+                        }
+                    }
+                }
+
+                options.tooltip = {
+                    y: {
+                        formatter: function (value) {
+                            return value.toLocaleString()
+                        }
+                    }
+                }
+
+                options.dataLabels = {
+                    enabled: false
+                }
             }
 
             this.chart = new ApexCharts(
@@ -54,6 +99,73 @@ window.chartComponent = function (type, labels, series) {
             )
 
             this.chart.render()
+        },
+
+        // ==============================
+        // ✅ EXPORT CSV (BACKEND)
+        // ==============================
+        async downloadCSV () {
+            const response = await fetch('/chart/export', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document
+                        .querySelector('meta[name="csrf-token"]')
+                        .getAttribute('content')
+                },
+                body: JSON.stringify({
+                    type: 'csv',
+                    title: this.title,
+                    labels: this.labels,
+                    series: this.series
+                })
+            })
+
+            const blob = await response.blob()
+            this.downloadBlob(blob, this.slug(this.title) + '.csv')
+        },
+
+        // ==============================
+        // ✅ EXPORT PNG (BACKEND)
+        // ==============================
+        async downloadPNG () {
+            const { imgURI } = await this.chart.dataURI()
+
+            const response = await fetch('/chart/export', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document
+                        .querySelector('meta[name="csrf-token"]')
+                        .getAttribute('content')
+                },
+                body: JSON.stringify({
+                    type: 'png',
+                    title: this.title,
+                    image: imgURI
+                })
+            })
+
+            const blob = await response.blob()
+            this.downloadBlob(blob, this.slug(this.title) + '.png')
+        },
+
+        downloadBlob (blob, filename) {
+            const url = window.URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = filename
+            link.click()
+            window.URL.revokeObjectURL(url)
+        },
+
+        slug (text) {
+            return text
+                ? text
+                      .toLowerCase()
+                      .replace(/\s+/g, '-')
+                      .replace(/[^\w-]+/g, '')
+                : 'chart'
         }
     }
 }
