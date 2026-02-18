@@ -1,7 +1,7 @@
 <x-app :title="$title">
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <x-chart-card title="Cities" type="pie" :labels="$citiesChart['labels']" :series="$citiesChart['series']" />
+        <x-chart-card title="Cities" type="donut" :labels="$citiesChart['labels']" :series="$citiesChart['series']" />
         <x-chart-card title="Countries" type="donut" :labels="$countriesChart['labels']" :series="$countriesChart['series']" />
         <x-chart-card title="Destination Bytes" type="bar" :labels="$destinationAutonomousBytesChart['labels']" :series="$destinationAutonomousBytesChart['series']" />
         <x-chart-card title="Source Bytes" type="bar" :labels="$sourceAutonomousBytesChart['labels']" :series="$sourceAutonomousBytesChart['series']" />

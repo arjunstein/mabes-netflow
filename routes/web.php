@@ -8,3 +8,5 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+Route::post('/chart/export', [DashboardController::class, 'export'])->name('chart.export');
