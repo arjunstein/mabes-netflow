@@ -11,15 +11,28 @@ class ChartExportService
         $filename = str()->slug($title) . '.csv';
 
         return response()->streamDownload(function () use ($labels, $series) {
+
             $handle = fopen('php://output', 'w');
 
-            fputcsv($handle, ['Label', 'Value']);
+            // Header
+            $header = ['Time'];
 
+            foreach ($series as $item) {
+                $header[] = $item['name'];
+            }
+
+            fputcsv($handle, $header);
+
+            // Rows
             foreach ($labels as $index => $label) {
-                fputcsv($handle, [
-                    $label,
-                    $series[$index] ?? 0
-                ]);
+
+                $row = [$label];
+
+                foreach ($series as $item) {
+                    $row[] = $item['data'][$index] ?? 0;
+                }
+
+                fputcsv($handle, $row);
             }
 
             fclose($handle);
