@@ -93,6 +93,58 @@ window.chartComponent = function (type, labels, series) {
                 }
             }
 
+            // 👉 LINE (NEW 🔥)
+            if (this.type === 'line') {
+                options.series = this.series
+
+                options.xaxis = {
+                    categories: this.labels
+                }
+
+                options.stroke = {
+                    curve: 'smooth',
+                    width: 2
+                }
+
+                options.dataLabels = {
+                    enabled: false
+                }
+
+                options.tooltip = {
+                    shared: true,
+                    intersect: false
+                }
+
+                options.yaxis = {
+                    labels: {
+                        formatter: function (value) {
+                            if (value >= 1000000000) {
+                                return (
+                                    (value / 1000000000)
+                                        .toFixed(1)
+                                        .replace(/\.0$/, '') + 'B'
+                                )
+                            }
+                            if (value >= 1000000) {
+                                return (
+                                    (value / 1000000)
+                                        .toFixed(1)
+                                        .replace(/\.0$/, '') + 'M'
+                                )
+                            }
+                            if (value >= 10000) {
+                                return (
+                                    (value / 1000)
+                                        .toFixed(1)
+                                        .replace(/\.0$/, '') + 'K'
+                                )
+                            }
+                            return value
+                        }
+                    }
+                }
+            }
+
             this.chart = new ApexCharts(
                 this.$el.querySelector('[x-ref="chart"]'),
                 options
