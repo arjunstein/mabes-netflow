@@ -5,13 +5,15 @@ import Alpine from 'alpinejs'
 window.Alpine = Alpine
 window.ApexCharts = ApexCharts
 
-window.chartComponent = function (type, labels, series) {
+window.chartComponent = function (type, labels, series, endpoint = null) {
     return {
         chart: null,
         type: type,
         labels: labels,
         series: series,
         title: null,
+        endpoint: endpoint,
+        period: '1h',
 
         init () {
             if (this.chart) {
@@ -30,12 +32,6 @@ window.chartComponent = function (type, labels, series) {
                 dataLabels: {
                     enabled: true
                 }
-            }
-
-            // 👉 Pie & Donut
-            if (type === 'pie' || type === 'donut') {
-                options.labels = labels
-                options.series = series
             }
 
             // 👉 Bar
@@ -151,6 +147,24 @@ window.chartComponent = function (type, labels, series) {
             )
 
             this.chart.render()
+        },
+
+        async fetchData () {
+            if (!this.endpoint) return
+
+            const response = await fetch(
+                `${this.endpoint}?period=${this.period}`
+            )
+
+            const data = await response.json()
+
+            this.labels = data.categories
+            this.series = data.series
+
+            this.chart.updateOptions({
+                xaxis: { categories: this.labels },
+                series: this.series
+            })
         },
 
         // ==============================

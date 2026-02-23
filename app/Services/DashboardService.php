@@ -11,75 +11,87 @@ class DashboardService
         $this->elasticService = $elasticService;
     }
 
-    public function getCitiesChart(): array
+    public function getCitiesChart(string $period = '1h'): array
     {
-        $response = $this->elasticService->getCities();
-        return $this->transformTimeSeriesToLine($response);
+        return $this->getChart(
+            fn($start = null, $end = null) => $this->elasticService->getCities($start, $end),
+            $period
+        );
     }
 
-    public function getCountriesChart(): array
+    public function getCountriesChart(string $period = '1h'): array
     {
-        $response = $this->elasticService->getCountries();
-        return $this->transformTimeSeriesToLine($response);
+        return $this->getChart(
+            fn($start = null, $end = null) => $this->elasticService->getCountries($start, $end),
+            $period
+        );
     }
 
-    public function getDestinationAutonomousBytesChart(): array
+    public function getDestinationAutonomousBytesChart(string $period = '1h'): array
     {
-        $response = $this->elasticService->getDestinationAutonomousBytes();
-
-        return $this->transformTimeSeriesToLine($response);
+        return $this->getChart(
+            fn($start = null, $end = null) => $this->elasticService->getDestinationAutonomousBytes($start, $end),
+            $period
+        );
     }
 
-    public function getSourceAutonomousBytesChart(): array
+    public function getSourceAutonomousBytesChart(string $period = '1h'): array
     {
-        $response = $this->elasticService->getSourceAutonomousBytes();
-
-        return $this->transformTimeSeriesToLine($response);
+        return $this->getChart(
+            fn($start = null, $end = null) => $this->elasticService->getSourceAutonomousBytes($start, $end),
+            $period
+        );
     }
 
-    public function getDestinationAutonomousPacketsChart(): array
+    public function getDestinationAutonomousPacketsChart(string $period = '1h'): array
     {
-        $response = $this->elasticService->getDestinationAutonomousPackets();
-
-        return $this->transformTimeSeriesToLine($response);
+        return $this->getChart(
+            fn($start = null, $end = null) => $this->elasticService->getDestinationAutonomousPackets($start, $end),
+            $period
+        );
     }
 
-    public function getSourceAutonomousPacketsChart(): array
+    public function getSourceAutonomousPacketsChart(string $period = '1h'): array
     {
-        $response = $this->elasticService->getSourceAutonomousPackets();
-
-        return $this->transformTimeSeriesToLine($response);
+        return $this->getChart(
+            fn($start = null, $end = null) => $this->elasticService->getSourceAutonomousPackets($start, $end),
+            $period
+        );
     }
 
-    public function getDestinationIpChart(): array
+    public function getDestinationIpChart(string $period = '1h'): array
     {
-        $response = $this->elasticService->getDestinationIp();
-
-        return $this->transformTimeSeriesToLine($response);
+        return $this->getChart(
+            fn($start = null, $end = null) => $this->elasticService->getDestinationIp($start, $end),
+            $period
+        );
     }
 
-    public function getSourceIpChart(): array
+    public function getSourceIpChart(string $period = '1h'): array
     {
-        $response = $this->elasticService->getSourceIp();
-
-        return $this->transformTimeSeriesToLine($response);
+        return $this->getChart(
+            fn($start = null, $end = null) => $this->elasticService->getSourceIp($start, $end),
+            $period
+        );
     }
 
-    public function getDestinationPortsChart(): array
+    public function getDestinationPortsChart(string $period = '1h'): array
     {
-        $response = $this->elasticService->getDestinationPorts();
-
-        return $this->transformTimeSeriesToLine($response);
+        return $this->getChart(
+            fn($start = null, $end = null) => $this->elasticService->getDestinationPorts($start, $end),
+            $period
+        );
     }
 
-    public function getSourcePortsChart(): array
+    public function getSourcePortsChart(string $period = '1h'): array
     {
-        $response = $this->elasticService->getSourcePorts();
-
-        return $this->transformTimeSeriesToLine($response);
+        return $this->getChart(
+            fn($start = null, $end = null) => $this->elasticService->getSourcePorts($start, $end),
+            $period
+        );
     }
 
-    private function transformTimeSeriesToLine(array $response): array
+    private function transformTimeSeriesToLine(array $response, string $period = '1h'): array
     {
         if (
             empty($response['legends']) ||
@@ -104,8 +116,11 @@ class DashboardService
 
         foreach ($timeSeries as $row) {
 
-            // Format time HH:mm
-            $categories[] = toLocalTime($row['time']);
+            if ($period === '7d') {
+                $categories[] = toLocalTime($row['time'], 'Y-m-d');
+            } else {
+                $categories[] = toLocalTime($row['time'], 'H:i');
+            }
 
             foreach ($legends as $name) {
                 $value = collect($row['dimensions'] ?? [])
@@ -128,5 +143,22 @@ class DashboardService
             'categories' => $categories,
             'series' => $formattedSeries,
         ];
+    }
+
+    private function getChart(callable $callback, string $period = '1h'): array
+    {
+        if ($period === '7d') {
+
+            $range = resolvePeriodRange('7d');
+
+            $start = $range['start']->toDateString();
+            $end   = $range['end']->subDay()->toDateString();
+
+            $response = $callback($start, $end);
+        } else {
+            $response = $callback();
+        }
+
+        return $this->transformTimeSeriesToLine($response, $period);
     }
 }

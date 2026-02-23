@@ -41,3 +41,46 @@ if (! function_exists('toUtcRange')) {
         return $carbon->utc()->toIso8601String();
     }
 }
+
+if (! function_exists('resolvePeriodRange')) {
+
+    function resolvePeriodRange(string $period): array
+    {
+        $now = now(); // config('app.timezone')
+
+        switch ($period) {
+            case '7d':
+                return [
+                    'start' => $now->copy()->subDays(7)->startOfDay(),
+                    'end'   => $now->copy()->endOfDay()
+                ];
+
+            default:
+                return [
+                    'start' => $now->copy()->subHour(),
+                    'end'   => $now
+                ];
+        }
+    }
+}
+
+if (! function_exists('toUtcIso')) {
+
+    function toUtcIso(Carbon $date): string
+    {
+        return $date->copy()
+            ->setTimezone('UTC')
+            ->toIso8601String();
+    }
+}
+
+if (! function_exists('resolveFormatByPeriod')) {
+
+    function resolveFormatByPeriod(string $period): string
+    {
+        return match ($period) {
+            '7d' => 'd M',
+            default => 'H:i',
+        };
+    }
+}

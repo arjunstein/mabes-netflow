@@ -6,9 +6,15 @@ use Illuminate\Support\Facades\Http;
 
 class ElasticService
 {
-    public function getCities()
+    public function getCities(?string $startDate = null, ?string $endDate = null)
     {
-        $response = Http::get(config('services.elastic.cities_endpoint'));
+        $url = config('services.elastic.cities_endpoint');
+
+        if ($startDate && $endDate) {
+            $url .= "?start_date={$startDate}&end_date={$endDate}";
+        }
+
+        $response = Http::get($url);
 
         if ($response->failed()) {
             return [];
@@ -17,9 +23,15 @@ class ElasticService
         return $response->json('data') ?? [];
     }
 
-    public function getCountries()
+    public function getCountries(?string $startDate = null, ?string $endDate = null)
     {
-        $response = Http::get(config('services.elastic.countries_endpoint'));
+        $url = config('services.elastic.countries_endpoint');
+
+        if ($startDate && $endDate) {
+            $url .= "?start_date={$startDate}&end_date={$endDate}";
+        }
+
+        $response = Http::get($url);
 
         if ($response->failed()) {
             return [];
@@ -28,9 +40,15 @@ class ElasticService
         return $response->json('data') ?? [];
     }
 
-    public function getDestinationAutonomousBytes()
+    public function getDestinationAutonomousBytes(?string $startDate = null, ?string $endDate = null)
     {
-        $response = Http::get(config('services.elastic.destination_autonomous_bytes_endpoint'));
+        $url = config('services.elastic.destination_autonomous_bytes_endpoint');
+
+        if ($startDate && $endDate) {
+            $url .= "?start_date={$startDate}&end_date={$endDate}";
+        }
+
+        $response = Http::get($url);
 
         if ($response->failed()) {
             return [];
@@ -39,9 +57,15 @@ class ElasticService
         return $response->json('data') ?? [];
     }
 
-    public function getSourceAutonomousBytes()
+    public function getSourceAutonomousBytes(?string $startDate = null, ?string $endDate = null)
     {
-        $response = Http::get(config('services.elastic.source_autonomous_bytes_endpoint'));
+        $url = config('services.elastic.source_autonomous_bytes_endpoint');
+
+        if ($startDate && $endDate) {
+            $url .= "?start_date={$startDate}&end_date={$endDate}";
+        }
+
+        $response = Http::get($url);
 
         if ($response->failed()) {
             return [];
@@ -50,9 +74,15 @@ class ElasticService
         return $response->json('data') ?? [];
     }
 
-    public function getDestinationAutonomousPackets()
+    public function getDestinationAutonomousPackets(?string $startDate = null, ?string $endDate = null)
     {
-        $response = Http::get(config('services.elastic.destination_autonomous_packets_endpoint'));
+        $url = config('services.elastic.destination_autonomous_packets_endpoint');
+
+        if ($startDate && $endDate) {
+            $url .= "?start_date={$startDate}&end_date={$endDate}";
+        }
+
+        $response = Http::get($url);
 
         if ($response->failed()) {
             return [];
@@ -61,9 +91,15 @@ class ElasticService
         return $response->json('data') ?? [];
     }
 
-    public function getSourceAutonomousPackets()
+    public function getSourceAutonomousPackets(?string $startDate = null, ?string $endDate = null)
     {
-        $response = Http::get(config('services.elastic.source_autonomous_packets_endpoint'));
+        $url = config('services.elastic.source_autonomous_packets_endpoint');
+
+        if ($startDate && $endDate) {
+            $url .= "?start_date={$startDate}&end_date={$endDate}";
+        }
+
+        $response = Http::get($url);
 
         if ($response->failed()) {
             return [];
@@ -72,9 +108,15 @@ class ElasticService
         return $response->json('data') ?? [];
     }
 
-    public function getDestinationIp()
+    public function getDestinationIp(?string $startDate = null, ?string $endDate = null)
     {
-        $response = Http::get(config('services.elastic.destination_ip_endpoint'));
+        $url = config('services.elastic.destination_ip_endpoint');
+
+        if ($startDate && $endDate) {
+            $url .= "?start_date={$startDate}&end_date={$endDate}";
+        }
+
+        $response = Http::get($url);
 
         if ($response->failed()) {
             return [];
@@ -83,9 +125,15 @@ class ElasticService
         return $response->json('data') ?? [];
     }
 
-    public function getSourceIp()
+    public function getSourceIp(?string $startDate = null, ?string $endDate = null)
     {
-        $response = Http::get(config('services.elastic.source_ip_endpoint'));
+        $url = config('services.elastic.source_ip_endpoint');
+
+        if ($startDate && $endDate) {
+            $url .= "?start_date={$startDate}&end_date={$endDate}";
+        }
+
+        $response = Http::get($url);
 
         if ($response->failed()) {
             return [];
@@ -94,9 +142,15 @@ class ElasticService
         return $response->json('data') ?? [];
     }
 
-    public function getDestinationPorts()
+    public function getDestinationPorts(?string $startDate = null, ?string $endDate = null)
     {
-        $response = Http::get(config('services.elastic.destination_ports_endpoint'));
+        $url = config('services.elastic.destination_ports_endpoint');
+
+        if ($startDate && $endDate) {
+            $url .= "?start_date={$startDate}&end_date={$endDate}";
+        }
+
+        $response = Http::get($url);
 
         if ($response->failed()) {
             return [];
@@ -105,9 +159,15 @@ class ElasticService
         return $response->json('data') ?? [];
     }
 
-    public function getSourcePorts()
+    public function getSourcePorts(?string $startDate = null, ?string $endDate = null)
     {
-        $response = Http::get(config('services.elastic.source_ports_endpoint'));
+        $url = config('services.elastic.source_ports_endpoint');
+
+        if ($startDate && $endDate) {
+            $url .= "?start_date={$startDate}&end_date={$endDate}";
+        }
+
+        $response = Http::get($url);
 
         if ($response->failed()) {
             return [];
