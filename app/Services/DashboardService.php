@@ -13,101 +13,120 @@ class DashboardService
 
     public function getCitiesChart(): array
     {
-        $cities = $this->elasticService->getCities();
-
-        return [
-            'labels' => collect($cities)->pluck('name')->toArray(),
-            'series' => collect($cities)->pluck('total')->toArray(),
-        ];
+        $response = $this->elasticService->getCities();
+        return $this->transformTimeSeriesToLine($response);
     }
 
     public function getCountriesChart(): array
     {
-        $countries = $this->elasticService->getCountries();
-
-        return [
-            'labels' => collect($countries)->pluck('name')->toArray(),
-            'series' => collect($countries)->pluck('total')->toArray(),
-        ];
+        $response = $this->elasticService->getCountries();
+        return $this->transformTimeSeriesToLine($response);
     }
 
     public function getDestinationAutonomousBytesChart(): array
     {
-        $data = $this->elasticService->getDestinationAutonomousBytes();
+        $response = $this->elasticService->getDestinationAutonomousBytes();
 
-        return [
-            'labels' => collect($data)->pluck('name')->toArray(),
-            'series' => collect($data)->pluck('total')->toArray(),
-        ];
+        return $this->transformTimeSeriesToLine($response);
     }
 
     public function getSourceAutonomousBytesChart(): array
     {
-        $data = $this->elasticService->getSourceAutonomousBytes();
+        $response = $this->elasticService->getSourceAutonomousBytes();
 
-        return [
-            'labels' => collect($data)->pluck('name')->toArray(),
-            'series' => collect($data)->pluck('total')->toArray(),
-        ];
+        return $this->transformTimeSeriesToLine($response);
     }
 
     public function getDestinationAutonomousPacketsChart(): array
     {
-        $data = $this->elasticService->getDestinationAutonomousPackets();
+        $response = $this->elasticService->getDestinationAutonomousPackets();
 
-        return [
-            'labels' => collect($data)->pluck('name')->toArray(),
-            'series' => collect($data)->pluck('total')->toArray(),
-        ];
+        return $this->transformTimeSeriesToLine($response);
     }
 
     public function getSourceAutonomousPacketsChart(): array
     {
-        $data = $this->elasticService->getSourceAutonomousPackets();
+        $response = $this->elasticService->getSourceAutonomousPackets();
 
-        return [
-            'labels' => collect($data)->pluck('name')->toArray(),
-            'series' => collect($data)->pluck('total')->toArray(),
-        ];
+        return $this->transformTimeSeriesToLine($response);
     }
 
     public function getDestinationIpChart(): array
     {
-        $data = $this->elasticService->getDestinationIp();
+        $response = $this->elasticService->getDestinationIp();
 
-        return [
-            'labels' => collect($data)->pluck('name')->toArray(),
-            'series' => collect($data)->pluck('total')->toArray(),
-        ];
+        return $this->transformTimeSeriesToLine($response);
     }
 
     public function getSourceIpChart(): array
     {
-        $data = $this->elasticService->getSourceIp();
+        $response = $this->elasticService->getSourceIp();
 
-        return [
-            'labels' => collect($data)->pluck('name')->toArray(),
-            'series' => collect($data)->pluck('total')->toArray(),
-        ];
+        return $this->transformTimeSeriesToLine($response);
     }
 
     public function getDestinationPortsChart(): array
     {
-        $data = $this->elasticService->getDestinationPorts();
+        $response = $this->elasticService->getDestinationPorts();
 
-        return [
-            'labels' => collect($data)->pluck('name')->toArray(),
-            'series' => collect($data)->pluck('total')->toArray(),
-        ];
+        return $this->transformTimeSeriesToLine($response);
     }
 
     public function getSourcePortsChart(): array
     {
-        $data = $this->elasticService->getSourcePorts();
+        $response = $this->elasticService->getSourcePorts();
+
+        return $this->transformTimeSeriesToLine($response);
+    }
+
+    private function transformTimeSeriesToLine(array $response): array
+    {
+        if (
+            empty($response['legends']) ||
+            empty($response['data'])
+        ) {
+            return [
+                'categories' => [],
+                'series' => []
+            ];
+        }
+
+        $legends = $response['legends'];
+        $timeSeries = $response['data'];
+
+        $categories = [];
+        $series = [];
+
+        // Init series per legend
+        foreach ($legends as $name) {
+            $series[$name] = [];
+        }
+
+        foreach ($timeSeries as $row) {
+
+            // Format time HH:mm
+            $categories[] = toLocalTime($row['time']);
+
+            foreach ($legends as $name) {
+                $value = collect($row['dimensions'] ?? [])
+                    ->firstWhere('key', $name)['value'] ?? 0;
+
+                $series[$name][] = $value;
+            }
+        }
+
+        $formattedSeries = [];
+
+        foreach ($series as $name => $values) {
+            $formattedSeries[] = [
+                'name' => $name,
+                'data' => $values
+            ];
+        }
 
         return [
-            'labels' => collect($data)->pluck('name')->toArray(),
-            'series' => collect($data)->pluck('total')->toArray(),
+            'categories' => $categories,
+            'series' => $formattedSeries,
         ];
     }
 }

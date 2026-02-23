@@ -11,7 +11,7 @@
         </h3>
 
         <!-- Download Button -->
-        <div class="relative" x-data="{ open: false }">
+        <div class="relative" x-data="{ open: false }" x-cloak x-transition.origin.top.right>
             <button @click="open = !open" class="p-2 rounded hover:bg-gray-100">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                     stroke="currentColor" class="size-5">
@@ -22,7 +22,7 @@
 
             <div x-show="open" @click.outside="open = false"
                 class="absolute right-0 mt-2 w-32 bg-white border-0 shadow-md z-10">
-                <button @click="downloadCSV(); open=false"
+                <button @click="downloadCSV(); open=false" disabled
                     class="block w-full text-left text-xs px-4 py-2 hover:bg-gray-50 cursor-pointer">
                     Download CSV
                 </button>
