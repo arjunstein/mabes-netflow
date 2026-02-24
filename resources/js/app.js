@@ -14,6 +14,12 @@ window.chartComponent = function (type, labels, series, endpoint = null) {
         title: null,
         endpoint: endpoint,
         period: '1h',
+        refreshIntervalMs: 5000,
+        autoRefreshTimer: null,
+        isFetching: false,
+        windowSize: 0,
+        visibilityHandler: null,
+        fastFollowTimer: null,
 
         init () {
             if (this.chart) {
@@ -24,7 +30,16 @@ window.chartComponent = function (type, labels, series, endpoint = null) {
                 chart: {
                     type: type,
                     height: 320,
-                    toolbar: { show: false }
+                    toolbar: { show: false },
+                    animations: {
+                        enabled: true,
+                        easing: 'linear',
+                        speed: 350,
+                        dynamicAnimation: {
+                            enabled: true,
+                            speed: 350
+                        }
+                    }
                 },
                 legend: {
                     position: 'bottom'
@@ -89,7 +104,7 @@ window.chartComponent = function (type, labels, series, endpoint = null) {
                 }
             }
 
-            // 👉 LINE (NEW 🔥)
+            // 👉 LINE
             if (this.type === 'line') {
                 options.series = this.series
 
@@ -147,24 +162,234 @@ window.chartComponent = function (type, labels, series, endpoint = null) {
             )
 
             this.chart.render()
+
+            this.windowSize = this.resolveWindowSize()
+            this.setupWatchers()
+            this.setupAutoRefresh()
         },
 
-        async fetchData () {
-            if (!this.endpoint) return
-
-            const response = await fetch(
-                `${this.endpoint}?period=${this.period}`
-            )
-
-            const data = await response.json()
-
-            this.labels = data.categories
-            this.series = data.series
-
-            this.chart.updateOptions({
-                xaxis: { categories: this.labels },
-                series: this.series
+        setupWatchers () {
+            this.$watch('period', () => {
+                this.windowSize = this.resolveWindowSize()
+                this.fetchData({ incremental: false })
+                this.setupAutoRefresh()
             })
+
+            this.visibilityHandler = () => {
+                if (document.hidden) {
+                    this.stopAutoRefresh()
+                    return
+                }
+
+                this.setupAutoRefresh()
+                this.fetchData({ incremental: true })
+            }
+
+            document.addEventListener('visibilitychange', this.visibilityHandler)
+        },
+
+        setupAutoRefresh () {
+            this.stopAutoRefresh()
+
+            if (!this.endpoint || this.period !== '1h') return
+
+            this.autoRefreshTimer = window.setInterval(() => {
+                this.fetchData({ incremental: true })
+            }, this.refreshIntervalMs)
+        },
+
+        stopAutoRefresh () {
+            if (!this.autoRefreshTimer) return
+            window.clearInterval(this.autoRefreshTimer)
+            this.autoRefreshTimer = null
+        },
+
+        stopFastFollowRefresh () {
+            if (!this.fastFollowTimer) return
+            window.clearTimeout(this.fastFollowTimer)
+            this.fastFollowTimer = null
+        },
+
+        scheduleFastFollowRefresh () {
+            if (this.fastFollowTimer || this.isFetching || this.period !== '1h') return
+
+            this.fastFollowTimer = window.setTimeout(() => {
+                this.fastFollowTimer = null
+                this.fetchData({ incremental: true })
+            }, 2000)
+        },
+
+        resolveWindowSize () {
+            return this.labels.length > 0 ? this.labels.length : 60
+        },
+
+        normalizeOneHourData (payload) {
+            const categories = payload?.categories ?? []
+            const series = payload?.series ?? []
+
+            if (this.period !== '1h' || categories.length < 13) {
+                return {
+                    categories,
+                    series
+                }
+            }
+
+            // Show only stable slots: take 12 points before the newest slot.
+            const stableEndIndex = categories.length - 1
+            const stableStartIndex = Math.max(stableEndIndex - 12, 0)
+            const normalizedCategories = categories.slice(stableStartIndex, stableEndIndex)
+
+            const normalizedSeries = series.map((item) => ({
+                ...item,
+                data: (item?.data ?? []).slice(stableStartIndex, stableEndIndex)
+            }))
+
+            return {
+                categories: normalizedCategories,
+                series: normalizedSeries
+            }
+        },
+
+        applyChartUpdate ({ animate = true } = {}) {
+            if (!this.chart) return
+
+            this.chart.updateOptions(
+                {
+                    xaxis: { categories: this.labels },
+                    series: this.series
+                },
+                false,
+                animate,
+                false
+            )
+        },
+
+        applySlidingWindow (incoming) {
+            let incomingLabels = incoming?.categories ?? []
+            let incomingSeries = incoming?.series ?? []
+
+            if (incomingLabels.length === 0 || incomingSeries.length === 0) return
+
+            // Avoid rendering a brand-new trailing bucket when backend still returns all 0.
+            const latestLabel = incomingLabels[incomingLabels.length - 1]
+            const latestIsNew = !this.labels.includes(latestLabel)
+            const latestAllZero = incomingSeries.every((item) => {
+                const latestValue = item?.data?.[item.data.length - 1] ?? 0
+                return Number(latestValue) === 0
+            })
+
+            if (latestIsNew && latestAllZero) {
+                incomingLabels = incomingLabels.slice(0, -1)
+                incomingSeries = incomingSeries.map((item) => ({
+                    ...item,
+                    data: (item.data ?? []).slice(0, -1)
+                }))
+                this.scheduleFastFollowRefresh()
+            }
+
+            if (incomingLabels.length === 0 || incomingSeries.length === 0) return
+
+            const maxPoints = this.windowSize || this.resolveWindowSize()
+            const startIndex = Math.max(incomingLabels.length - maxPoints, 0)
+            const nextLabels = incomingLabels.slice(startIndex)
+
+            const previousSeriesMap = new Map(this.series.map((item) => [item.name, item.data ?? []]))
+            const previousLabelIndex = new Map(this.labels.map((label, index) => [label, index]))
+            const unstableFromIndex = Math.max(nextLabels.length - 2, 0)
+
+            const nextSeries = incomingSeries.map((item) => {
+                const prevData = previousSeriesMap.get(item.name) ?? []
+                const incomingData = (item.data ?? []).slice(startIndex, startIndex + nextLabels.length)
+                const lastStableValue = Number(
+                    [...prevData].reverse().find((val) => Number(val) > 0) ?? 0
+                )
+
+                const reconciled = incomingData.map((value, index) => {
+                    if (index < unstableFromIndex) return value
+
+                    const label = nextLabels[index]
+                    const prevIndex = previousLabelIndex.get(label)
+                    const nextValue = Number(value ?? 0)
+
+                    if (prevIndex === undefined) {
+                        // For a brand-new bucket, avoid flashing zero before ingest completes.
+                        if (nextValue === 0 && lastStableValue > 0) {
+                            this.scheduleFastFollowRefresh()
+                            return lastStableValue
+                        }
+
+                        return value
+                    }
+
+                    const prevValue = Number(prevData[prevIndex] ?? 0)
+
+                    // Hold previous non-zero value on tail buckets to hide ingest lag.
+                    if (prevValue > 0 && nextValue === 0) {
+                        this.scheduleFastFollowRefresh()
+                        return prevValue
+                    }
+
+                    return value
+                })
+
+                return {
+                    ...item,
+                    data: reconciled
+                }
+            })
+
+            this.labels = nextLabels
+            this.series = nextSeries
+            this.applyChartUpdate({ animate: true })
+        },
+
+        async fetchData ({ incremental = false } = {}) {
+            if (!this.endpoint) return
+            if (this.isFetching) return
+
+            this.isFetching = true
+
+            try {
+                const response = await fetch(
+                    `${this.endpoint}?period=${this.period}&_=${Date.now()}`,
+                    {
+                        cache: 'no-store',
+                        headers: {
+                            Accept: 'application/json'
+                        }
+                    }
+                )
+
+                if (!response.ok) {
+                    throw new Error(`Chart refresh failed (${response.status})`)
+                }
+
+                const data = await response.json()
+                const normalizedData = this.normalizeOneHourData(data)
+
+                if (incremental && this.period === '1h' && this.type === 'line') {
+                    this.applySlidingWindow(normalizedData)
+                    return
+                }
+
+                this.labels = normalizedData.categories ?? []
+                this.series = normalizedData.series ?? []
+                this.windowSize = this.resolveWindowSize()
+                this.applyChartUpdate({ animate: true })
+            } catch (error) {
+                console.error(error)
+            } finally {
+                this.isFetching = false
+            }
+        },
+
+        destroy () {
+            this.stopAutoRefresh()
+            this.stopFastFollowRefresh()
+
+            if (this.visibilityHandler) {
+                document.removeEventListener('visibilitychange', this.visibilityHandler)
+            }
         },
 
         // ==============================

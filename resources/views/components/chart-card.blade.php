@@ -35,17 +35,17 @@ init()" class="bg-white rounded-xl shadow-sm p-5 relative">
                 <!-- Dropdown -->
                 <div x-show="open" x-transition.origin.top.right @click.outside="open = false"
                     class="absolute right-0 mt-2 w-44 rounded-lg bg-white shadow-lg ring-1 ring-black/5 text-xs z-20">
-                    <button @click="period='1h'; fetchData(); open=false"
+                    <button @click="period='1h'; open=false"
                         class="block w-full px-4 py-2 text-left hover:bg-gray-50">
                         Last Hour
                     </button>
 
-                    <button @click="period='24h'; fetchData(); open=false"
+                    <button @click="period='24h'; open=false"
                         class="block w-full px-4 py-2 text-left hover:bg-gray-50">
                         Last Day
                     </button>
 
-                    <button @click="period='7d'; fetchData(); open=false"
+                    <button @click="period='7d'; open=false"
                         class="block w-full px-4 py-2 text-left hover:bg-gray-50">
                         Last 7 Days
                     </button>
