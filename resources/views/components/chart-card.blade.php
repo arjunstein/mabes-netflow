@@ -20,7 +20,8 @@ init()" class="bg-white rounded-xl shadow-sm p-5 relative">
                 <button @click="open = !open" type="button"
                     class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50">
                     <span x-text="{
-                    '1h': '1 Hour',
+                    '1h': 'Last Hour',
+                    '24h': 'Last Day',
                     '7d': 'Last 7 Days'
                 }[period]">
                     </span>
@@ -36,7 +37,12 @@ init()" class="bg-white rounded-xl shadow-sm p-5 relative">
                     class="absolute right-0 mt-2 w-44 rounded-lg bg-white shadow-lg ring-1 ring-black/5 text-xs z-20">
                     <button @click="period='1h'; fetchData(); open=false"
                         class="block w-full px-4 py-2 text-left hover:bg-gray-50">
-                        1 Hour
+                        Last Hour
+                    </button>
+
+                    <button @click="period='24h'; fetchData(); open=false"
+                        class="block w-full px-4 py-2 text-left hover:bg-gray-50">
+                        Last Day
                     </button>
 
                     <button @click="period='7d'; fetchData(); open=false"

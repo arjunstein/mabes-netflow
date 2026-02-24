@@ -5,10 +5,12 @@ namespace App\Services;
 class DashboardService
 {
     protected ElasticService $elasticService;
+    protected PeriodService $periodService;
 
-    public function __construct(ElasticService $elasticService)
+    public function __construct(ElasticService $elasticService, PeriodService $periodService)
     {
         $this->elasticService = $elasticService;
+        $this->periodService = $periodService;
     }
 
     public function getCitiesChart(string $period = '1h'): array
@@ -114,13 +116,10 @@ class DashboardService
             $series[$name] = [];
         }
 
+        $format = $this->periodService->resolveFormat($period);
         foreach ($timeSeries as $row) {
 
-            if ($period === '7d') {
-                $categories[] = toLocalTime($row['time'], 'Y-m-d');
-            } else {
-                $categories[] = toLocalTime($row['time'], 'H:i');
-            }
+            $categories[] = toLocalTime($row['time'], $format);
 
             foreach ($legends as $name) {
                 $value = collect($row['dimensions'] ?? [])
@@ -147,12 +146,12 @@ class DashboardService
 
     private function getChart(callable $callback, string $period = '1h'): array
     {
-        if ($period === '7d') {
+        $range = $this->periodService->resolveRange($period);
 
-            $range = resolvePeriodRange('7d');
+        if (in_array($period, ['7d', '24h'])) {
 
             $start = $range['start']->toDateString();
-            $end   = $range['end']->subDay()->toDateString();
+            $end   = $range['end']->toDateString();
 
             $response = $callback($start, $end);
         } else {
