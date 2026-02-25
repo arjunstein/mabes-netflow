@@ -106,7 +106,7 @@ window.chartComponent = function (type, labels, series, endpoint = null) {
 
             // 👉 LINE
             if (this.type === 'line') {
-                options.series = this.series
+                options.series = this.sanitizeSeriesData(this.series, this.labels.length)
 
                 options.xaxis = {
                     categories: this.labels
@@ -223,9 +223,45 @@ window.chartComponent = function (type, labels, series, endpoint = null) {
             return this.labels.length > 0 ? this.labels.length : 60
         },
 
+        toFiniteNumber (value, fallback = 0) {
+            if (Number.isFinite(value)) return value
+
+            if (typeof value === 'string') {
+                const normalized = value.replace(/,/g, '').trim()
+                const parsed = Number(normalized)
+                return Number.isFinite(parsed) ? parsed : fallback
+            }
+
+            const parsed = Number(value)
+            return Number.isFinite(parsed) ? parsed : fallback
+        },
+
+        sanitizeSeriesData (series = [], expectedLength = null) {
+            return series.map((item) => {
+                const data = Array.isArray(item?.data) ? item.data : []
+                const normalizedData = data.map((value) => this.toFiniteNumber(value, 0))
+
+                if (!Number.isInteger(expectedLength)) {
+                    return {
+                        ...item,
+                        data: normalizedData
+                    }
+                }
+
+                const filledData = Array.from({ length: expectedLength }, (_, index) =>
+                    this.toFiniteNumber(normalizedData[index], 0)
+                )
+
+                return {
+                    ...item,
+                    data: filledData
+                }
+            })
+        },
+
         normalizeOneHourData (payload) {
             const categories = payload?.categories ?? []
-            const series = payload?.series ?? []
+            const series = this.sanitizeSeriesData(payload?.series ?? [], categories.length)
 
             if (this.period !== '1h' || categories.length < 13) {
                 return {
@@ -253,10 +289,13 @@ window.chartComponent = function (type, labels, series, endpoint = null) {
         applyChartUpdate ({ animate = true } = {}) {
             if (!this.chart) return
 
+            const sanitizedSeries = this.sanitizeSeriesData(this.series, this.labels.length)
+            this.series = sanitizedSeries
+
             this.chart.updateOptions(
                 {
                     xaxis: { categories: this.labels },
-                    series: this.series
+                    series: sanitizedSeries
                 },
                 false,
                 animate,
@@ -305,7 +344,7 @@ window.chartComponent = function (type, labels, series, endpoint = null) {
                 )
 
                 const reconciled = incomingData.map((value, index) => {
-                    if (index < unstableFromIndex) return value
+                    if (index < unstableFromIndex) return this.toFiniteNumber(value, 0)
 
                     const label = nextLabels[index]
                     const prevIndex = previousLabelIndex.get(label)
@@ -318,7 +357,7 @@ window.chartComponent = function (type, labels, series, endpoint = null) {
                             return lastStableValue
                         }
 
-                        return value
+                        return this.toFiniteNumber(value, 0)
                     }
 
                     const prevValue = Number(prevData[prevIndex] ?? 0)
@@ -329,12 +368,12 @@ window.chartComponent = function (type, labels, series, endpoint = null) {
                         return prevValue
                     }
 
-                    return value
+                    return this.toFiniteNumber(value, 0)
                 })
 
                 return {
                     ...item,
-                    data: reconciled
+                    data: reconciled.map((value) => this.toFiniteNumber(value, 0))
                 }
             })
 
